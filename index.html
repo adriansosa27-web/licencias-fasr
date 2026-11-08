@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F2A26">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Licencias FASR">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Licencias FASR · Selector</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" aria-live="polite">
+  <header class="topbar">
+    <div class="brand"><span class="logo">FASR</span><span class="title">Licencias del Selector</span></div>
+    <button id="btn-lock" class="icon-btn" hidden aria-label="Bloquear">Bloquear</button>
+  </header>
+
+  <!-- CONFIGURACIÓN INICIAL -->
+  <main id="screen-setup" class="screen" hidden>
+    <section class="card">
+      <h1>Configurar esta app</h1>
+      <p class="muted">Solo emite licencias del Selector de Pruebas. Necesitas el <strong>respaldo de identidad de firma</strong> que exportas desde el Administrador de Licencias FASR en tu PC.</p>
+    </section>
+
+    <section class="card" id="setup-step-a">
+      <h2>1 · Importar tu identidad de firma</h2>
+      <label class="field">Archivo de respaldo (exportado desde el Admin)
+        <input type="file" id="setup-file">
+      </label>
+      <label class="field">Contraseña de ese respaldo
+        <input type="password" id="setup-backup-pw" autocomplete="off">
+      </label>
+      <button class="btn primary" id="btn-read-backup">Leer respaldo</button>
+      <p class="error" id="setup-error-a" role="alert"></p>
+    </section>
+
+    <section class="card" id="setup-step-b" hidden>
+      <h2>2 · Comprueba y protege</h2>
+      <div class="kv"><span>Huella de la llave</span><code id="setup-fp"></code></div>
+      <p class="muted small">Esta es la llave que firmará tus licencias. Debe ser la misma llave pública que lleva el Selector (<code>admin-public-key.pem</code>). Podrás comprobarlo en <strong>Ajustes</strong>.</p>
+      <label class="field">Contraseña de esta app (mínimo 10 caracteres)
+        <input type="password" id="setup-pw1" autocomplete="new-password">
+      </label>
+      <label class="field">Repite la contraseña
+        <input type="password" id="setup-pw2" autocomplete="new-password">
+      </label>
+      <label class="field">Primer número de licencia de este teléfono
+        <input type="number" id="setup-next" value="500001" min="1" max="999999" inputmode="numeric">
+        <span class="hint">Usa un rango distinto al de tu PC (por ejemplo, desde 500001) para que nunca se repitan números entre los dos Admin.</span>
+      </label>
+      <button class="btn primary" id="btn-create-vault">Crear y entrar</button>
+      <p class="error" id="setup-error-b" role="alert"></p>
+    </section>
+
+    <section class="card subtle">
+      <h2>¿Ya tenías esta app?</h2>
+      <p class="muted small">Restaura un respaldo cifrado de esta misma app (se pedirá la contraseña de la app).</p>
+      <label class="btn" for="restore-file-setup">Restaurar respaldo de la app</label>
+      <input type="file" id="restore-file-setup" hidden>
+    </section>
+  </main>
+
+  <!-- BLOQUEO -->
+  <main id="screen-lock" class="screen" hidden>
+    <section class="card">
+      <h1>Desbloquear</h1>
+      <label class="field">Contraseña de la app
+        <input type="password" id="lock-pw" autocomplete="current-password">
+      </label>
+      <button class="btn primary" id="btn-unlock">Desbloquear</button>
+      <p class="error" id="lock-error" role="alert"></p>
+    </section>
+  </main>
+
+  <!-- APP -->
+  <main id="screen-main" class="screen with-tabs" hidden>
+    <!-- Nueva -->
+    <div class="tab" id="tab-nueva">
+      <section class="card" id="new-step-1">
+        <h1>Nueva licencia</h1>
+        <p class="muted">Pide al evaluado que, en su Selector, exporte la <strong>solicitud de equipo</strong> (<code>.selectorreq</code>) y te la envíe.</p>
+        <label class="btn primary block" for="req-file">Elegir archivo de solicitud</label>
+        <input type="file" id="req-file" hidden>
+        <details class="paste">
+          <summary>O pegar el texto de la solicitud</summary>
+          <textarea id="req-text" rows="5" placeholder='{"formato":"SELECTOR-DEVICE-REQUEST", …}'></textarea>
+          <button class="btn" id="btn-read-text">Leer texto</button>
+        </details>
+        <p class="error" id="new-error-1" role="alert"></p>
+      </section>
+
+      <section class="card" id="new-step-2" hidden>
+        <h2>Datos de la licencia</h2>
+        <div class="kv"><span>Equipo</span><code id="req-code"></code></div>
+        <div class="kv"><span>Solicitud</span><span id="req-date"></span></div>
+        <p class="warn" id="req-warn" hidden></p>
+        <label class="field">Nombre completo
+          <input type="text" id="lic-nombre" autocomplete="off">
+        </label>
+        <label class="field">Correo
+          <input type="email" id="lic-correo" autocomplete="off" inputmode="email">
+        </label>
+        <label class="field">Vencimiento (vacío = permanente)
+          <input type="date" id="lic-venc">
+        </label>
+        <label class="field">Notas
+          <input type="text" id="lic-notas" autocomplete="off">
+        </label>
+        <details class="paste"><summary>Más opciones</summary>
+          <label class="field">Días de gracia después del vencimiento
+            <input type="number" id="lic-gracia" value="0" min="0" max="3650" inputmode="numeric">
+          </label>
+        </details>
+        <div class="row">
+          <button class="btn" id="btn-cancel-new">Cancelar</button>
+          <button class="btn primary" id="btn-emit">Emitir licencia</button>
+        </div>
+        <p class="error" id="new-error-2" role="alert"></p>
+      </section>
+
+      <section class="card success" id="new-step-3" hidden>
+        <h2>Licencia emitida</h2>
+        <div class="kv"><span>Número</span><code id="done-id"></code></div>
+        <div class="kv"><span>Para</span><span id="done-name"></span></div>
+        <p class="muted small">Envía el archivo <code id="done-file"></code> al evaluado. Debe importarlo en el Selector <strong>sin abrirlo ni editarlo</strong>.</p>
+        <button class="btn primary block" id="btn-share">Compartir archivo</button>
+        <button class="btn block" id="btn-download">Descargar archivo</button>
+        <button class="btn block ghost" id="btn-another">Emitir otra licencia</button>
+        <p class="ok small" id="done-verify"></p>
+      </section>
+    </div>
+
+    <!-- Licencias -->
+    <div class="tab" id="tab-licencias" hidden>
+      <section class="card">
+        <h1>Licencias</h1>
+        <p class="warn" id="backup-warn" hidden></p>
+        <input type="search" id="lic-search" placeholder="Buscar por nombre, correo, número o equipo">
+        <div id="lic-list" class="list"></div>
+        <p class="muted" id="lic-empty" hidden>Aún no hay licencias emitidas desde este teléfono.</p>
+      </section>
+    </div>
+
+    <!-- Ajustes -->
+    <div class="tab" id="tab-ajustes" hidden>
+      <section class="card">
+        <h2>Tu llave de firma</h2>
+        <div class="kv"><span>Huella</span><code id="set-fp"></code></div>
+        <details class="paste"><summary>Ver llave pública</summary>
+          <pre id="set-pem" class="pem"></pre>
+          <button class="btn" id="btn-copy-pem">Copiar llave pública</button>
+        </details>
+        <div class="kv"><span>Siguiente número</span><code id="set-next"></code></div>
+      </section>
+
+      <section class="card">
+        <h2>Comprobar contra el Selector</h2>
+        <p class="muted small">Elige o pega el <code>admin-public-key.pem</code> que lleva tu Selector. Si no coincide con esta llave, ese Selector rechazará tus licencias.</p>
+        <label class="btn block" for="cmp-file">Elegir archivo .pem</label>
+        <input type="file" id="cmp-file" hidden>
+        <textarea id="cmp-text" rows="4" placeholder="-----BEGIN PUBLIC KEY-----"></textarea>
+        <button class="btn" id="btn-compare">Comparar</button>
+        <p id="cmp-result" class="small" role="status"></p>
+      </section>
+
+      <section class="card">
+        <h2>Respaldo de esta app</h2>
+        <p class="muted small">Tus licencias viven solo en este teléfono. Guarda un respaldo cifrado (se abre con la contraseña de la app) en un lugar seguro.</p>
+        <button class="btn block" id="btn-backup">Exportar respaldo cifrado</button>
+        <label class="btn block" for="restore-file">Restaurar respaldo…</label>
+        <input type="file" id="restore-file" hidden>
+        <p class="muted small" id="set-lastbackup"></p>
+      </section>
+
+      <section class="card danger">
+        <h2>Zona de riesgo</h2>
+        <button class="btn block" id="btn-lock2">Bloquear ahora</button>
+        <button class="btn block danger-btn" id="btn-wipe">Borrar todos los datos de esta app</button>
+      </section>
+      <p class="muted small center" id="app-version"></p>
+    </div>
+
+    <nav class="tabbar" aria-label="Secciones">
+      <button data-tab="nueva" class="on">Nueva</button>
+      <button data-tab="licencias">Licencias</button>
+      <button data-tab="ajustes">Ajustes</button>
+    </nav>
+  </main>
+</div>
+
+<dialog id="dlg-detail">
+  <form method="dialog" class="dlg">
+    <h2 id="d-title"></h2>
+    <div id="d-body"></div>
+    <label class="field">Estado
+      <select id="d-estado"></select>
+    </label>
+    <div class="row">
+      <button class="btn" id="d-reexport" value="x">Reexportar archivo</button>
+      <button class="btn primary" value="close">Cerrar</button>
+    </div>
+    <h3>Historial</h3>
+    <ul id="d-hist" class="hist"></ul>
+  </form>
+</dialog>
+
+<div id="busy" hidden><div class="spin"></div><p id="busy-text">Procesando…</p></div>
+<div id="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>
